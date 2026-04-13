@@ -16,6 +16,10 @@ class Config:
     ]
     ALLOWED_CHAT_IDS: set[int] = set()  # populated after class definition
 
+    # Optional: comma-separated Telegram user IDs allowed to use the bot
+    # If empty, all users in approved chats can use the bot
+    ALLOWED_USER_IDS: set[int] = set()
+
     ANTHROPIC_API_KEY: str = _require("ANTHROPIC_API_KEY")
 
     N8N_URL: str = _require("N8N_URL")
@@ -32,3 +36,7 @@ class Config:
 
 
 Config.ALLOWED_CHAT_IDS = set(Config.STAFF_GROUP_CHAT_IDS) | {Config.MALEESHA_CHAT_ID}
+
+_allowed_users_raw = os.environ.get("ALLOWED_USER_IDS", "")
+if _allowed_users_raw.strip():
+    Config.ALLOWED_USER_IDS = {int(x.strip()) for x in _allowed_users_raw.split(",") if x.strip()}
