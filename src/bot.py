@@ -26,8 +26,29 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     if Config.ALLOWED_USER_IDS and user.id not in Config.ALLOWED_USER_IDS:
         return
 
-    # Strip bot mention
-    bot_username = (await context.bot.get_me()).username
+    bot_me = await context.bot.get_me()
+    bot_username = bot_me.username
+    bot_id = bot_me.id
+    is_group = update.effective_chat.type in ("group", "supergroup")
+
+    # Gate 3: in groups, only respond to @mentions or replies to the bot
+    # (privacy mode is DISABLED so bot sees all messages — this gate prevents
+    # calling Claude for every casual staff message)
+    if is_group:
+        mentioned = any(
+            e.type == "mention" and
+            text[e.offset: e.offset + e.length].lstrip("@").lower() == bot_username.lower()
+            for e in (update.message.entities or [])
+        )
+        replied_to_bot = (
+            update.message.reply_to_message is not None and
+            update.message.reply_to_message.from_user is not None and
+            update.message.reply_to_message.from_user.id == bot_id
+        )
+        if not mentioned and not replied_to_bot:
+            return
+
+    # Strip bot mention from start of message
     if text.lower().startswith(f"@{bot_username.lower()}"):
         text = text[len(f"@{bot_username}"):].strip()
 
